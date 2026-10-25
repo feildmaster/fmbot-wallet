@@ -7,10 +7,7 @@ const lookup = createLookup({
   baseUrl: process.env.WALLET_URL || undefined,
 });
 
-const plugin = new utils.Plugin({
-  dir: __dirname,
-  name: 'Wallet',
-});
+const plugin = new utils.Plugin({ dir: __dirname });
 
 const handle = createHandler({
   lookup,
