@@ -134,3 +134,21 @@ test('a network failure is reported and the user is told to retry', async () => 
   assert.equal(await handle(message()), "I couldn't reach the wallet right now. Try again in a moment.");
   assert.deepEqual(errors.map(e => e.message), ['network down']);
 });
+
+test('someone using a slash command is told to slow down instead of left waiting', async () => {
+  const data = { connectorType: 'discord', interactionId: 'int1' };
+
+  assert.equal(await handle(message({ data })), 'Your balance: 1,250 FMC');
+  clock += 1000;
+
+  assert.equal(await handle(message({ data })), 'Slow down, try again in a few seconds.');
+  assert.equal(calls.length, 1);
+});
+
+test('the cooldown stays silent for typed commands and other plugins\' commands', async () => {
+  await handle(message());
+  clock += 1000;
+
+  assert.equal(await handle(message()), null);
+  assert.equal(await handle(message({ text: '.say hi', data: { connectorType: 'discord', interactionId: 'int2' } })), null);
+});

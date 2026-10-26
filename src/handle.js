@@ -1,5 +1,6 @@
+const { names } = require('./commands');
+
 const PREFIX = '.';
-const COMMANDS = ['wallet', 'balance'];
 const DEFAULT_CURRENCY = 'FMC';
 const CURRENCY_PATTERN = /^[a-z]{2,10}$/i;
 const COOLDOWN = 5000;
@@ -11,7 +12,7 @@ function parse(msg) {
   if (!prefixed && !msg.data.isPM) return null;
 
   const [command, arg] = (prefixed ? text.slice(PREFIX.length).trim() : text).split(/\s+/);
-  if (!COMMANDS.includes(command.toLowerCase())) return null;
+  if (!names.includes(command.toLowerCase())) return null;
   return { command: command.toLowerCase(), arg };
 }
 
@@ -36,7 +37,9 @@ module.exports = function createHandler({
     const { command, arg } = parsed;
 
     const time = now();
-    if (time - (lastUsed.get(msg.uid) || 0) < COOLDOWN) return null;
+    if (time - (lastUsed.get(msg.uid) || 0) < COOLDOWN) {
+      return msg.data.interactionId ? 'Slow down, try again in a few seconds.' : null;
+    }
     lastUsed.set(msg.uid, time);
 
     if (arg !== undefined && !CURRENCY_PATTERN.test(arg)) {
