@@ -22,7 +22,7 @@ const handle = createHandler({
 plugin.presenceSystem();
 plugin.defaultCommands(definitions);
 
-plugin.messageSystem().on('message-in', (msg) => {
+plugin.messageSystem().on('message/command', (msg) => {
   handle(msg)
     .then((text) => {
       if (!text) return null;

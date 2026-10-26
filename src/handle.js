@@ -1,20 +1,9 @@
-const { names } = require('./commands');
+const { definitions } = require('./commands');
 
-const PREFIX = '.';
 const DEFAULT_CURRENCY = 'FMC';
 const CURRENCY_PATTERN = /^[a-z]{2,10}$/i;
 const COOLDOWN = 5000;
 const PROVIDER = 'discord.com';
-
-function parse(msg) {
-  const text = String(msg.text || '').trim();
-  const prefixed = text.startsWith(PREFIX);
-  if (!prefixed && !msg.data.isPM) return null;
-
-  const [command, arg] = (prefixed ? text.slice(PREFIX.length).trim() : text).split(/\s+/);
-  if (!names.includes(command.toLowerCase())) return null;
-  return { command: command.toLowerCase(), arg };
-}
 
 module.exports = function createHandler({
   lookup,
@@ -29,12 +18,11 @@ module.exports = function createHandler({
     : "Your Discord account isn't linked to a wallet yet.";
 
   return async function handle(msg) {
-    if (!msg || msg.type !== 'text') return null;
+    if (!msg || msg.type !== 'command') return null;
     if (!msg.data || msg.data.connectorType !== 'discord') return null;
+    if (!Object.hasOwn(definitions, msg.data.command)) return null;
 
-    const parsed = parse(msg);
-    if (!parsed) return null;
-    const { command, arg } = parsed;
+    const { currency: arg } = msg.data.args || {};
 
     const time = now();
     if (time - (lastUsed.get(msg.uid) || 0) < COOLDOWN) {
@@ -43,7 +31,7 @@ module.exports = function createHandler({
     lastUsed.set(msg.uid, time);
 
     if (arg !== undefined && !CURRENCY_PATTERN.test(arg)) {
-      return `Usage: ${PREFIX}${command} [currency]`;
+      return 'Usage: .balance [currency]';
     }
     const currency = (arg || DEFAULT_CURRENCY).toUpperCase();
     if (currency === 'ALL') return `I don't know the currency ${currency}.`;

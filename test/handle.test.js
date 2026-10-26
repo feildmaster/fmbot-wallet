@@ -10,11 +10,16 @@ let response;
 let handle;
 
 const message = (overrides = {}) => ({
-  type: 'text',
+  type: 'command',
   uid: '555',
   cid: 'discord-cid',
   text: '.balance',
-  data: { connectorType: 'discord' },
+  data: { connectorType: 'discord', command: 'balance', args: {} },
+  ...overrides,
+});
+
+const withCurrency = (currency, overrides = {}) => message({
+  data: { connectorType: 'discord', command: 'balance', args: { currency } },
   ...overrides,
 });
 
@@ -42,50 +47,34 @@ test('looks up the sender by their discord id and replies with the balance', asy
   assert.deepEqual(calls, [{ uid: 'discord.com:::555', currency: 'FMC' }]);
 });
 
-test('both command names work regardless of case', async () => {
-  assert.equal(await handle(message({ text: '.WALLET', uid: '1' })), 'Your balance: 1,250 FMC');
-  assert.equal(await handle(message({ text: '.Balance', uid: '2' })), 'Your balance: 1,250 FMC');
-});
-
-test('space between the prefix and the command is allowed', async () => {
-  assert.equal(await handle(message({ text: '. wallet' })), 'Your balance: 1,250 FMC');
-});
-
-test('private messages do not need the prefix', async () => {
-  const data = { connectorType: 'discord', isPM: true };
-  assert.equal(await handle(message({ text: 'wallet', data })), 'Your balance: 1,250 FMC');
-  assert.equal(await handle(message({ text: 'hello', data, uid: '2' })), null);
-});
-
-test('the prefix is required outside private messages', async () => {
-  assert.equal(await handle(message({ text: 'balance' })), null);
-});
-
 test('another currency can be requested and is upper-cased', async () => {
   response = { GEM: 7 };
-  assert.equal(await handle(message({ text: '.balance gem' })), 'Your balance: 7 GEM');
+  assert.equal(await handle(withCurrency('gem')), 'Your balance: 7 GEM');
   assert.equal(calls[0].currency, 'GEM');
 });
 
-test('ignores messages that are not the command', async () => {
-  assert.equal(await handle(message({ text: 'hello .balance' })), null);
-  assert.equal(await handle(message({ text: '.balances' })), null);
-  assert.equal(await handle(message({ text: '.' })), null);
-  assert.equal(await handle(message({ text: '' })), null);
+test('ignores messages that are not one of its commands', async () => {
+  const other = { connectorType: 'discord', command: 'say', args: {} };
+
+  assert.equal(await handle(message({ data: other })), null);
+  assert.equal(await handle(message({ data: { connectorType: 'discord', args: {} } })), null);
+  assert.equal(await handle(message({ data: { connectorType: 'discord', command: 'constructor' } })), null);
+  assert.equal(await handle(message({ data: { connectorType: 'discord', command: '__proto__' } })), null);
   assert.equal(calls.length, 0);
 });
 
-test('ignores non-text messages and other connectors', async () => {
-  assert.equal(await handle(message({ type: 'command' })), null);
+test('ignores typed text, which the connector turns into a command when it is one, and other connectors', async () => {
+  assert.equal(await handle(message({ type: 'text' })), null);
   assert.equal(await handle(message({ type: undefined })), null);
-  assert.equal(await handle(message({ data: { connectorType: 'irc' } })), null);
+  assert.equal(await handle(message({ data: { connectorType: 'irc', command: 'balance' } })), null);
   assert.equal(await handle(message({ data: undefined })), null);
+  assert.equal(await handle(null), null);
   assert.equal(calls.length, 0);
 });
 
 test('rejects a malformed or reserved currency without calling the wallet', async () => {
-  assert.equal(await handle(message({ text: '.balance ../x', uid: '1' })), 'Usage: .balance [currency]');
-  assert.equal(await handle(message({ text: '.balance all', uid: '2' })), "I don't know the currency ALL.");
+  assert.equal(await handle(withCurrency('../x', { uid: '1' })), 'Usage: .balance [currency]');
+  assert.equal(await handle(withCurrency('all', { uid: '2' })), "I don't know the currency ALL.");
   assert.equal(calls.length, 0);
 });
 
@@ -136,7 +125,9 @@ test('a network failure is reported and the user is told to retry', async () => 
 });
 
 test('someone using a slash command is told to slow down instead of left waiting', async () => {
-  const data = { connectorType: 'discord', interactionId: 'int1' };
+  const data = {
+    connectorType: 'discord', command: 'balance', args: {}, interactionId: 'int1',
+  };
 
   assert.equal(await handle(message({ data })), 'Your balance: 1,250 FMC');
   clock += 1000;
@@ -145,10 +136,10 @@ test('someone using a slash command is told to slow down instead of left waiting
   assert.equal(calls.length, 1);
 });
 
-test('the cooldown stays silent for typed commands and other plugins\' commands', async () => {
+test('the cooldown stays silent for typed commands', async () => {
   await handle(message());
   clock += 1000;
 
   assert.equal(await handle(message()), null);
-  assert.equal(await handle(message({ text: '.say hi', data: { connectorType: 'discord', interactionId: 'int2' } })), null);
 });
+

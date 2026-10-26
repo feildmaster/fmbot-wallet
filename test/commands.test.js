@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const { test } = require('node:test');
 
 const { validateCommands } = require('@basedakp48/plugin-utils');
-const { definitions, names } = require('../src/commands');
+const { definitions } = require('../src/commands');
 const privateReply = require('../src/reply');
 
 test('the published definitions pass the validation plugin-utils applies at startup', () => {
@@ -20,8 +20,8 @@ test('the command is private and takes one optional currency', () => {
   );
 });
 
-test('the names the plugin answers to are the commands and their aliases', () => {
-  assert.deepEqual([...names].sort(), ['balance', 'wallet']);
+test('the command can also be typed as wallet', () => {
+  assert.deepEqual(definitions.balance.aliases, ['wallet']);
 });
 
 test('a reply to a slash command carries the interaction id and nothing else of the message', () => {

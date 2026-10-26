@@ -12,7 +12,4 @@ const definitions = {
   },
 };
 
-const names = Object.entries(definitions)
-  .flatMap(([name, definition]) => [name, ...(definition.aliases || [])]);
-
-module.exports = { definitions, names };
+module.exports = { definitions };
