@@ -2,6 +2,7 @@
   "name": "@basedakp48/plugin-wallet",
   "version": "0.0.1",
   "description": "Lets Discord users check their feildbase wallet balance.",
+  "repository": "feildmaster/fmbot-wallet",
   "private": true,
   "license": "MIT",
   "author": "Alan H (feildmaster) <akp48@feildmaster.com> (https://feildmaster.com/)",

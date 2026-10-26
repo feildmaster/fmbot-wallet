@@ -9,10 +9,12 @@ const lookup = createLookup({
 
 const plugin = new utils.Plugin({ dir: __dirname });
 
+const report = error => plugin.sendError(error).then(sent => sent || console.error(error));
+
 const handle = createHandler({
   lookup,
   linkURL: process.env.WALLET_LINK_URL,
-  onError: error => plugin.sendError(error).then(sent => sent || console.error(error)),
+  onError: report,
 });
 
 plugin.presenceSystem();
@@ -30,5 +32,5 @@ plugin.messageSystem().on('message-in', (msg) => {
         timeReceived: Date.now(),
       });
     })
-    .catch(console.error);
+    .catch(report);
 });
